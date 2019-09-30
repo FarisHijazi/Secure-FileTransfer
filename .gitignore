@@ -1,0 +1,7 @@
+# Created by .ignore support plugin (hsz.mobi)
+.idea
+.vscode
+*.iml
+
+MiniProj1-FarisHijazi.zip
+scripts/__pycache__/
