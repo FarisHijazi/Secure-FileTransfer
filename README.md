@@ -37,6 +37,21 @@ Run the following commands while in the `scripts/` directory
 An alternative is to run the exe files: `client.exe` and `server.exe` (order doesn't matter).
 However it is better to use the python scripts as they are more likely up to date.
 
+### Examples
+
+1. Use `ls` to see what files are available
+
+    ![list images (ls)](./docs/imgs/ls.png)
+
+2. Request a specific file, for example by typing:
+
+    ```sh
+    get "doomguy (1).jpeg"
+    ```
+
+3. Once the file is downloaded from the server, the client app will open it in the explorer:  
+    ![getting file](./docs/imgs/getting_file2.png)
+
 ### Terminal menu
 
 ```sh
@@ -110,26 +125,26 @@ Note: there are issues with the filenames when using `put --file-index`, so it's
         -l, --local  List files found locally (client side)
     ```
 
+## Debugging
+
+Sometimes the server may not respond to keyboard interrupts and the process must be killed.
+To find out if any task is using a specific port (for example `65432`), run:
+
+```
+netstat -ano|findstr 65432
+```
+
+And to kill the task, get the PID and run:
+
+```
+taskkill /F /PID <PID>
+```
+
 ----
-
-### Examples
-
-1. Use `ls` to see what files are available
-
-    ![list images (ls)](./docs/imgs/ls.png)
-
-2. Request a specific file, for example by typing:
-
-    ```sh
-    get "doomguy (1).jpeg"
-    ```
-
-3. Once the file is downloaded from the server, the client app will open it in the explorer:  
-    ![getting file](./docs/imgs/getting_file2.png)
 
 ## Credits and notes
 
-I've taken the socket programming part of the code from this [tutorial here](https://realpython.com/python-sockets/).
+The socket programming part of the code was taken from this [tutorial here](https://realpython.com/python-sockets/).
 
-I had issues with receiving messages, since TCP is not a message protocol, rather it is a stream protocol.
-So I found a way to solve this issue by building a small protocol on top of the TCP, it appends 4 bytes containing the length of the message, this way the sender knows how long it should keep accumulating the fragments (see solution from this answer on stackoverflow [here](https://stackoverflow.com/a/17668009/7771202)).
+Since TCP is not a message protocol, rather it is a stream protocol, issues were encountered with receiving large messages and were solved by building a simple message protocol on top of TCP.
+This can be achieved by pre-appending a 4-byte length field, this way the receiver knows how long it should keep accumulating the fragments (see solution from this answer on stackoverflow [here](https://stackoverflow.com/a/17668009/7771202)).
