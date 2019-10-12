@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from utils import recv_msg, send_msg
+from encryption_utils import CipherLib
 
 
 def sendCommand(args, callback=lambda sock: print("connected", sock)):
@@ -32,31 +33,43 @@ def sendCommand(args, callback=lambda sock: print("connected", sock)):
             return res
 
 
-def get_user_commands(parser: argparse.ArgumentParser):
+def get_user_commands(parser: argparse.ArgumentParser, args=None):
     # the returned agrs object will also have a member args._line_args
     # parsing args
-    args = parser.parse_args()
     line_args = ''
-    if hasattr(args, 'function'):  # arguments passed (if first time)
-        setattr(args, '_line_args', ' '.join(sys.argv[1:]))
-        sys.argv = [sys.argv[0]]  # clear CLI args
-    else:  # no args passed
+
+    if not args:
+        args = parser.parse_args()
+        if hasattr(args, 'function'):  # arguments passed (if first time)
+            line_args = ' '.join(sys.argv[1:])
+            sys.argv = [sys.argv[0]]  # clear CLI args
+
+    if not line_args:  # no args passed
         done = False
         while not done:
             parser.print_usage()
+            values_as_strings = [(v.__name__ if hasattr(v, '__name__') else str(v)) for v in args.__dict__.values()]
+            args_str = dict(zip(args.__dict__.keys(), values_as_strings))
+
+            print("Current arg values:", args_str)
             line_args = input('Client\n$ ')
             print()
 
             try:
                 args = parser.parse_args(shlex.split(line_args))
-                # if hasattr(args, 'filename'):
-                #     args.filename = args.filename
                 done = True  # keep trying and break when successful
             except Exception as e:
                 print(e)
 
     setattr(args, '_line_args', line_args)
     return args
+
+
+def exec_function(args):
+    if not hasattr(args, 'function'):
+        return
+
+    return args.function(args)
 
 
 def getArgParser():
@@ -72,6 +85,36 @@ def getArgParser():
     parser.add_argument('--host', default='127.0.0.1', type=str,
                         help='hostname or ipv4 address to connect to (use ip address for consistency).'
                              'Default: "127.0.0.1"')
+
+    # https://docs.python.org/2/library/argparse.html#action-classes
+    # class argparse.Action(option_strings, dest, nargs=None, const=None, default=None, type=None, choices=None, required=False, help=None, metavar=None)
+    class ChooseCypherAction(argparse.Action):
+        def __call__(self, parser, namespace, values, *args, **kwargs):
+            """
+            :param parser - The ArgumentParser object which contains this action.
+
+            :param namespace - The Namespace object that will be returned by parse_args(). Most actions add an attribute to this object using setattr().
+
+            :param values - The associated command-line arguments, with any type conversions applied. Type conversions are specified with the type keyword argument to add_argument().
+
+            :param option_string - The option string that was used to invoke this action.
+                The option_string argument is optional, and will be absent if the action is associated with a positional argument.
+
+            :param args:
+            :param kwargs:
+            :return:
+            """
+            print('action args:')
+            setattr(namespace, 'cipher', CipherLib.__dict__.get(values, CipherLib.none))
+
+    ciphers = list(filter(lambda s: not str(s).startswith('__'), CipherLib.__dict__.keys()))
+
+    parser.add_argument('-c', '--cipher', default=None, choices=ciphers, action=ChooseCypherAction,
+                        help='The encryption/decryption algorithm to use when receiving the file.'
+                             'Applies to both "put" and "pull". Default: none')
+    parser.add_argument('-k', '--key', default=b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48',  # 256 bits = 32 bytes
+                        help='The key used for encryption/decryption.'
+                             'Default: random')
 
     # creating subcommands
     subparsers = parser.add_subparsers(help='commands help...')
@@ -109,38 +152,30 @@ def getArgParser():
     return parser
 
 
-def exec_function(args):
-    if not hasattr(args, 'function'):
-        return
-
-    try:
-        return args.function(args)
-    except Exception as e:
-        print("Error executing command:", e)
+# ============ client actions =======
 
 
-#
-# ============ client action =======
-#
 def get(args=[]):
+    if args.file_index:
+        args.filename = 'file.gif'
+
+    if not os.path.isdir('./files'):
+        os.mkdir('./files')
+
+    filename = args.filename
+    if not filename.startswith('files'):
+        filename = os.path.join('files', args.filename)
+
+    if os.path.isdir(filename):
+        args.filename = os.path.join(args.filename, 'file.gif')
+
+
     def callback(conn: socket):
         data = recv_msg(conn)
 
-        if args.file_index:
-            args.filename = 'file.gif'
-
-        if not os.path.isdir('./files'):
-            os.mkdir('./files')
-
-        filename = args.filename
-        if not filename.startswith('files'):
-            filename = os.path.join('files', args.filename)
-
-        if os.path.isdir(filename):
-            args.filename = os.path.join(args.filename, 'file.gif')
-
         with open(filename, 'wb+') as f:
-            f.write(data)
+            plaintext = args.cipher(data=data, key=args.key, decrypt=True)
+            f.write(plaintext)
             if os.path.isfile(filename):
                 subprocess.Popen(r'explorer /select,"{}"'.format(filename))
 
@@ -159,10 +194,12 @@ def put(args=[]):
         print("File {} doesn't exist".format(filename))
         return
 
-    def callback(conn: socket):
-        with open(filename, 'rb') as f:
-            data = f.read()
-            send_msg(conn, data)
+    ciphertext = b''
+    with open(filename, 'rb') as f:
+        data = f.read()
+        ciphertext = args.cipher(data=data, key=args.key)
+
+    callback = lambda conn: send_msg(conn, ciphertext)
 
     return sendCommand(args, callback)
 

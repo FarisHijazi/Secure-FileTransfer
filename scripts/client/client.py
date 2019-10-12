@@ -28,10 +28,11 @@ def main():
     parser = getArgParser()
     print(DESCRIPTION + "\n")
 
+    args = None
     i = 0
     while True:
         i += 1
-        args = get_user_commands(parser)
+        args = get_user_commands(parser, args)
         resp = exec_function(args)
 
 

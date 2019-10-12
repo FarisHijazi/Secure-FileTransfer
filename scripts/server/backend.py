@@ -4,16 +4,16 @@ import shlex
 import socket
 import subprocess
 
-from server import client_parser
 from utils import send_msg, recv_msg, SafeArgumentParser
+from encryption_utils import CipherLib
 
 
 def getArgParser():
     parser = argparse.ArgumentParser("Server side app")
     parser.add_argument('--port', default=65432, type=int,
                         help='Port to listen on (non-privileged ports are > 1023)')
-    parser.add_argument('--host', default='127.0.0.1',
-                        type=str, help='the ipv4 address to open connections')
+    parser.add_argument('--host', default='127.0.0.1', type=str,
+                        help='the ipv4 address to open connections')
     return parser
 
 
@@ -24,26 +24,63 @@ def getClientArgParser():
 
     # creating subcommands
     subparsers = parser.add_subparsers(help='commands help...')
-    parser_quit = subparsers.add_parser('quit', help='quit the program')
+
+
+    # https://docs.python.org/2/library/argparse.html#action-classes
+    # class argparse.Action(option_strings, dest, nargs=None, const=None, default=None, type=None, choices=None, required=False, help=None, metavar=None)
+    class ChooseCypherAction(argparse.Action):
+        def __call__(self, parser, namespace, values, *args, **kwargs):
+            """
+            :param parser - The ArgumentParser object which contains this action.
+
+            :param namespace - The Namespace object that will be returned by parse_args(). Most actions add an attribute to this object using setattr().
+
+            :param values - The associated command-line arguments, with any type conversions applied. Type conversions are specified with the type keyword argument to add_argument().
+
+            :param option_string - The option string that was used to invoke this action.
+                The option_string argument is optional, and will be absent if the action is associated with a positional argument.
+
+            :param args:
+            :param kwargs:
+            :return:
+            """
+            print('action args:')
+            setattr(namespace, 'cipher', CipherLib.__dict__.get(values, CipherLib.none))
+
+    ciphers = list(filter(lambda s: not str(s).startswith('__'), CipherLib.__dict__.keys()))
+
+    parser.add_argument('-c', '--cipher', default=None, choices=ciphers, action=ChooseCypherAction,
+                        help='The encryption/decryption algorithm to use when receiving the file.'
+                             'Applies to both "put" and "pull". Default: none')
+    parser.add_argument('-k', '--key', default=b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48', # 256 bits = 32 bytes
+                        help='The key used for encryption/decryption.'
+                             'Default: random')
+
+
+    parser_quit = subparsers.add_parser('quit',
+                                        help='quit the program')
     parser_quit.set_defaults(function=quit)
 
-    parser_get = subparsers.add_parser(
-        'get', help='pull a file from the server')
+    parser_get = subparsers.add_parser('get',
+                                       help='pull a file from the server')
     parser_get.add_argument('filename', type=str)
     parser_get.add_argument('-i', '--file-index', action='store_true')
     parser_get.set_defaults(function=get, type=str)
 
-    parser_put = subparsers.add_parser('put', help='push a file to the server')
+    parser_put = subparsers.add_parser('put',
+                                       help='push a file to the server')
+    parser_put.add_argument('-i', '--file-index', action='store_true')
     parser_put.add_argument('filename', type=str)
     parser_put.set_defaults(function=put, type=str)
 
-    parser_ls = subparsers.add_parser('ls', help='list available files')
+    parser_ls = subparsers.add_parser('ls',
+                                      help='list available files')
     # parser_ls.add_argument()
     parser_ls.set_defaults(function=ls)
     return parser
 
 
-def recv_next_command(conn: socket):
+def recv_next_command(conn: socket, client_parser=None):
     """
     waits for a command by the client, and returns the parsed args, responds to the client with 202 on success
     :param conn: socket connection
@@ -74,23 +111,27 @@ def get(conn: socket, args=[]):
     args_filename = args.filename
     filename = os.path.join('files', args_filename)
     with open(filename, 'rb') as f:
-        data = f.read()
+        ciphertext = f.read()
+        data = args.cipher(data=ciphertext, key=args.key)
     print("finished reading file \"{}\", {}B".format(filename, len(data)))
     send_msg(conn, data)
 
 
 def put(conn: socket, args=[]):
+    # recv file from client and write to file
     print('receiving file...')
     args.filename = os.path.join('files', args.filename)
-    # recv file from client
     data = recv_msg(conn)
+    if data is None:
+        print("Problem: data received is None")
     print("got the file data!: {}Bytes".format(len(data)))
 
     if not os.path.isdir('./files'):
         os.mkdir('./files')
 
     with open(args.filename, 'wb+') as file:
-        file.write(data)
+        plaintext = args.cipher(data=data, key=args.key, decrypt=True)
+        file.write(plaintext)
 
     print('recieved file:', args.filename)
 

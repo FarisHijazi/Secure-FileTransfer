@@ -7,19 +7,13 @@ import sys
 import inspect
 
 # moving the import path 1 directory up (to import utils)
-from backend import getArgParser, getClientArgParser, recv_next_command
-
-currentdir = os.path.dirname(os.path.abspath(
-    inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
+from server_backend import getArgParser, recv_next_command, getClientArgParser
 from utils import recv_msg, send_msg
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))  # move path to file dir, to access files
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
 PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
-
 
 # this parser is to parse the client commands (not the commandline parser)
 
@@ -44,7 +38,7 @@ if __name__ == "__main__":
             # print("accepted connection")
             with conn:
                 print('Connected by', addr)
-                client_args = recv_next_command(conn)
+                client_args = recv_next_command(conn, client_parser)
                 try:
                     if hasattr(client_args, 'function'):
                         result = client_args.function(conn, client_args)
@@ -52,7 +46,6 @@ if __name__ == "__main__":
                     client_resp = recv_msg(conn)
                     if client_resp in [r'200']:
                         print("Transaction completed successfully")
-
                 except Exception as e:
                     print(e)
                     continue
