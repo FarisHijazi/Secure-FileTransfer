@@ -99,7 +99,7 @@ def recv_next_command(conn: socket, client_parser=None):
         send_msg(conn, b'202')  # send the code "202" meaning (accepted)
         return client_args
     except Exception as e:
-        print(e)
+        print("ERROR:", e)
         return None
 
 
@@ -107,7 +107,7 @@ def recv_next_command(conn: socket, client_parser=None):
 # these actions/commands are with respect to the client,
 # so get() means the server will send to the client, while put() receives a file from the client
 
-def get(conn: socket, args=[]):
+def get(conn: socket, args=None):
     # send the file to client
     if args.file_index:
         args.filename = os.listdir('files')[int(args.filename)]
@@ -121,7 +121,7 @@ def get(conn: socket, args=[]):
     send_msg(conn, data)
 
 
-def put(conn: socket, args=[]):
+def put(conn: socket, args=None):
     # recv file from client and write to file
     print('receiving file...')
     args.filename = os.path.join('files', args.filename)
@@ -143,7 +143,7 @@ def put(conn: socket, args=[]):
         subprocess.Popen(r'explorer /select,"{}"'.format(args.filename))
 
 
-def ls(conn: socket, args=[]):
+def ls(conn: socket, args=None):
     import json
     # send list of files
     filelist = os.listdir('files/')

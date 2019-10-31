@@ -33,7 +33,7 @@ if __name__ == "__main__":
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((args.host, args.port))
             s.listen(10)
-            print("waiting for connection...")
+            print("waiting for clients to connect...")
             conn, addr = s.accept()
             # print("accepted connection")
             with conn:
@@ -47,7 +47,7 @@ if __name__ == "__main__":
                     if client_resp in [r'200']:
                         print("Transaction completed successfully")
                 except Exception as e:
-                    print(e)
+                    print("Error:", e)
                     continue
 
                 # then based on the request, do the action

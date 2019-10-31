@@ -63,7 +63,7 @@ def get_user_commands(parser: argparse.ArgumentParser, args=None):
                 args = parser.parse_args(shlex.split(line_args))
                 done = True  # keep trying and break when successful
             except Exception as e:
-                print(e)
+                print("ERROR:", e)
 
     setattr(args, '_line_args', line_args)
     return args
@@ -159,7 +159,7 @@ def getArgParser():
 # ============ client actions =======
 
 
-def get(args=[]):
+def get(args=None):
     if args.file_index:
         args.filename = 'file.gif'
 
@@ -186,7 +186,7 @@ def get(args=[]):
     return sendCommand(args, callback)
 
 
-def put(args=[]):
+def put(args=None):
     if args.file_index:  # if access-by-fileindex, then remove attr (to prevent issues) and get filename
         delattr(args, 'file_index')
         file_index = int(args.filename)
@@ -195,7 +195,7 @@ def put(args=[]):
     filename = os.path.join('files', args.filename)  # prepend 'file/'
 
     if not os.path.isfile(filename):  # check if file exists
-        print("File {} doesn't exist".format(filename))
+        print('ERROR: File "{}" doesn\'t exist'.format(filename))
         return
 
     ciphertext = b''
@@ -218,7 +218,7 @@ def ls(args=None):
         return ls_remote(args)
 
 
-def ls_local(args=[], print_list=False):
+def ls_local(args=None, print_list=False):
     filelist = os.listdir('files/')
     if print_list:
         prettystr = '\n'.join(['\t{} | \t{}'.format(i, file)
@@ -227,7 +227,7 @@ def ls_local(args=[], print_list=False):
     return filelist
 
 
-def ls_remote(args=[]):
+def ls_remote(args=None):
     def callback(conn: socket):
         import json
         res = recv_msg(conn)
@@ -241,5 +241,5 @@ def ls_remote(args=[]):
     return sendCommand(args, callback)
 
 
-def quit(args=[]):
+def quit(args=None):
     exit(0)
