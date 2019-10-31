@@ -8,6 +8,10 @@ import sys
 from utils import recv_msg, send_msg
 from encryption_utils import CipherLib
 
+# 256 bits = 32 bytes
+# b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48'
+DEFAULT_KEY = b'\xc3\x7d\xdf\xe2\x0d\x88\x02\x1b\xc6\x6a\x06\x70\x6a\xc9\xfb\xdd\x0b\xb2\xdc\x0b\x04\x3c\xf4\xd2\x2d\xbb\xbc\xda\x08\x6f\x0f\x48'
+
 
 def sendCommand(args, callback=lambda sock: print("connected", sock)):
     """
@@ -105,14 +109,14 @@ def getArgParser():
             :return:
             """
             print('action args:')
-            setattr(namespace, 'cipher', CipherLib.__dict__.get(values, CipherLib.none))
+            setattr(namespace, 'cipherfunc', getattr(CipherLib, values))
 
     ciphers = list(filter(lambda s: not str(s).startswith('__'), CipherLib.__dict__.keys()))
 
-    parser.add_argument('-c', '--cipher', default=None, choices=ciphers, action=ChooseCypherAction,
+    parser.add_argument('-c', '--cipher', default='none', choices=ciphers, action=ChooseCypherAction,
                         help='The encryption/decryption algorithm to use when receiving the file.'
                              'Applies to both "put" and "pull". Default: none')
-    parser.add_argument('-k', '--key', default=b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48',  # 256 bits = 32 bytes
+    parser.add_argument('-k', '--key', default=DEFAULT_KEY,  # 256 bits = 32 bytes
                         help='The key used for encryption/decryption.'
                              'Default: random')
 
@@ -174,7 +178,7 @@ def get(args=[]):
         data = recv_msg(conn)
 
         with open(filename, 'wb+') as f:
-            plaintext = args.cipher(data=data, key=args.key, decrypt=True)
+            plaintext = args.cipherfunc(data=data, key=args.key, decrypt=True)
             f.write(plaintext)
             if os.path.isfile(filename):
                 subprocess.Popen(r'explorer /select,"{}"'.format(filename))
@@ -197,14 +201,14 @@ def put(args=[]):
     ciphertext = b''
     with open(filename, 'rb') as f:
         data = f.read()
-        ciphertext = args.cipher(data=data, key=args.key)
+        ciphertext = args.cipherfunc(data=data, key=args.key)
 
     callback = lambda conn: send_msg(conn, ciphertext)
 
     return sendCommand(args, callback)
 
 
-def ls(args=[]):
+def ls(args=None):
     """
     list files, either local or online (depending on --local argument)
     """

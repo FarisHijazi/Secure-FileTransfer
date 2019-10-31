@@ -10,15 +10,27 @@ class CipherLib:
     """
 
     def __init__(self):
-        raise Exception("Cannot instantiate type " + self.__class__)
+        raise Exception("Cannot instantiate type " + self.__class__.__name__)
 
+    @staticmethod
     def none(data, decrypt=False, key=None, **kwargs) -> bytes:
         if isinstance(data, bytes):
             data = data.decode('utf-8')
         return data
 
-    def aes(data, decrypt=False, key: str = None, **kwargs) -> bytes:
-        # A 256 bit (32 byte) key
+    @staticmethod
+    def aes(data, decrypt=False, key=None, **kwargs) -> bytes:
+        """
+        :param data: data as string or bytes
+        :param decrypt: decrypt or encrypt?
+        :param key: A 256 bit (32 byte) key
+        :param kwargs:
+        :return:
+
+        ```
+        aes(data, decrypt=False, iv='intializationVec')
+        ```
+        """
 
         if key is None:
             print("empty AES key:", key)
@@ -28,10 +40,23 @@ class CipherLib:
         if isinstance(key, str):
             key = key.encode('utf-8')
 
-        aes = pyaes.AESModeOfOperationCTR(key)
+        iv_128 = kwargs.get('iv', None)
+        aes = pyaes.AESModeOfOperationCBC(key, iv=iv_128)
 
-        data = aes.decrypt(data) if decrypt \
-            else aes.encrypt(data)
+        operation = aes.decrypt if decrypt else aes.encrypt
 
-        print("encryption/decryption data:", data)
-        return data
+        block_size = 16
+        # padding (to be a multiple of 16)
+        remainder = len(data) % block_size
+        padded_data = b"".join([data, bytes(block_size - remainder)])
+
+        # split to blocks and encrypt/decrypt each one
+        n_blocks = len(padded_data) // block_size
+        chunks = [padded_data[i * block_size:(i + 1) * block_size] for i in range(n_blocks)]
+
+        # performing the operation (encryption or decryption)
+        new_data = b''.join((map(operation, chunks)))
+
+        print(('descrypted' if decrypt else 'encrypted') + ' data', new_data)
+
+        return new_data
