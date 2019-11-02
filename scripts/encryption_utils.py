@@ -1,4 +1,6 @@
 import pyaes
+import array, struct
+
 import os
 
 
@@ -14,8 +16,8 @@ class CipherLib:
 
     @staticmethod
     def none(data, decrypt=False, key=None, **kwargs) -> bytes:
-        if isinstance(data, bytes):
-            data = data.decode('utf-8')
+        if isinstance(data, str):
+            data = _string_to_bytes(data)
         return data
 
     @staticmethod
@@ -36,10 +38,6 @@ class CipherLib:
             print("empty AES key:", key)
             return data
 
-        # key must be bytes, so we convert it
-        if isinstance(key, str):
-            key = key.encode('utf-8')
-
         iv_128 = kwargs.get('iv', None)
         aes = pyaes.AESModeOfOperationCBC(key, iv=iv_128)
 
@@ -54,9 +52,15 @@ class CipherLib:
         n_blocks = len(padded_data) // block_size
         chunks = [padded_data[i * block_size:(i + 1) * block_size] for i in range(n_blocks)]
 
-        # performing the operation (encryption or decryption)
-        new_data = b''.join((map(operation, chunks)))
+def _string_to_bytes(text):
+    if text is None:
+        text = ''
+    array_array = array.array('B', list(ord(c) for c in text))
+    print(array_array)
+    return bytes(array_array)
 
-        print(('descrypted' if decrypt else 'encrypted') + ' data', new_data)
 
-        return new_data
+def _bytes_to_string(binary):
+    if binary is None:
+        binary = b''
+    return "".join(chr(b) for b in binary)

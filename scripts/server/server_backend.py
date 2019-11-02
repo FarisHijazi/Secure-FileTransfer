@@ -103,9 +103,8 @@ def recv_next_command(conn: socket, client_parser=None):
     :param conn: socket connection
     :return: client command arguments, or None if invalid command
     """
-    req = recv_msg(conn)
-    command = req.decode('utf-8')
-    print("received req:", command)
+    command_json = _bytes_to_string(recv_msg(conn))
+    print("received req:", command_json)
 
     try:
         client_args = client_parser.parse_args(shlex.split(command))
