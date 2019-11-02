@@ -31,14 +31,40 @@ def sendCommand(args, callback=lambda sock: print("Connected", sock)):
         print('connecting to server...', end='')
         s.connect((args.host, args.port))  # connect
         print('\rConnection established                       ')
-        # if args._line_args:
-        send_msg(s, args._line_args.encode('utf-8'))  # send the command line
-        print('Sending command: "{}"'.format(args._line_args))
+
+        # random initialization vector
+        setattr(args, 'iv', secrets.token_bytes(16))
+
+        if not hasattr(args, 'cipherfunc'):
+            setattr(args, 'cipherfunc', CipherLib.none)
+
+        ################
+        # serialize args
+        ################
+        import copy
+        s_args = copy.deepcopy(vars(args))
+        for k, v in s_args.items():
+            if isinstance(v, types.FunctionType):  # functions get the name passed
+                s_args[k] = v.__name__
+            elif isinstance(v, bytes):  # bytes get turned into strings
+                s_args[k] = _bytes_to_string(v)
+
+        s_args['cipher'] = s_args.get('cipherfunc', 'none')
+        del s_args['key']  # delete key (otherwise is sent in plaintext)
+
+        request_json = json.dumps(s_args)
+        print('Sending command: "{}"'.format(request_json))
+
+        # send the command/request json
+        send_msg(s, _string_to_bytes(request_json))
+
         # check if server acknowledged the command
         # (if resp is included in one of the success response codes)
         resp = recv_msg(s)
-        if resp in [b'202']:
+        resp_json = AttrDict(json.loads(_bytes_to_string(resp)))
+        if resp_json.readystate in [202]:
             res = callback(s)
+
             send_msg(s, b'200')  # send OK code
             print('\nTransaction complete')
             return res
@@ -171,25 +197,28 @@ def getArgParser():
 
 
 def get(args=None):
-    if args.file_index:
-        args.filename = 'file.gif'
-
-    if not os.path.isdir('./files'):
-        os.mkdir('./files')
-
-    filename = args.filename
-    if not filename.startswith('files'):
-        filename = os.path.join('files', args.filename)
-
-    if os.path.isdir(filename):
-        args.filename = os.path.join(args.filename, 'file.gif')
-
-
     def callback(conn: socket):
-        data = recv_msg(conn)
+        # receive data
+        resp = AttrDict(json.loads(_bytes_to_string(recv_msg(conn))))
+
+        if args.file_index:
+            args.filename = resp.filename
+            delattr(args, 'file_index')
+
+        if not os.path.isdir('./files'):
+            os.mkdir('./files')
+
+        filename = args.filename \
+            if args.filename.startswith('files') \
+            else os.path.join('files', args.filename)
+
+        if os.path.isdir(filename):
+            args.filename = os.path.join(args.filename, resp.filename)
+
+        # === done preparing filesystem ===
 
         with open(filename, 'wb+') as f:
-            plaintext = args.cipherfunc(data=data, key=args.key, decrypt=True)
+            plaintext = args.cipherfunc(data=resp.data, key=args.key, decrypt=True, iv=resp.iv)
             f.write(plaintext)
             if os.path.isfile(filename):
                 subprocess.Popen(r'explorer /select,"{}"'.format(filename))
@@ -209,12 +238,20 @@ def put(args=None):
         print('ERROR: File "{}" doesn\'t exist'.format(filename))
         return
 
-    ciphertext = b''
-    with open(filename, 'rb') as f:
-        data = f.read()
-        ciphertext = args.cipherfunc(data=data, key=args.key)
+    def callback(conn: socket):
+        ciphertext = b''
+        with open(filename, 'rb') as f:
+            data = f.read()
+            ciphertext = args.cipherfunc(data=data, key=args.key, iv=args.iv)
 
-    callback = lambda conn: send_msg(conn, ciphertext)
+        return send_msg(
+            conn,
+            _string_to_bytes(json.dumps({
+                'filename': filename,
+                'data': _bytes_to_string(ciphertext),
+                'iv': _bytes_to_string(args.iv),
+            }))
+        )
 
     return sendCommand(args, callback)
 
@@ -241,9 +278,7 @@ def ls_local(args=None, print_list=False):
 def ls_remote(args):
     def callback(conn: socket):
         resp = recv_msg(conn)
-        res = recv_msg(conn)
-
-        filelist = json.loads(res)
+        filelist = json.loads(resp)
         prettystr = '\n'.join(['\t{} | \t{}'.format(i, file)
                                for i, file in enumerate(filelist)])
         print("List of server files:\n", prettystr)

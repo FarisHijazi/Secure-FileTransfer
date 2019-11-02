@@ -107,8 +107,38 @@ def recv_next_command(conn: socket, client_parser=None):
     print("received req:", command_json)
 
     try:
-        client_args = client_parser.parse_args(shlex.split(command))
-        send_msg(conn, b'202')  # send the code "202" meaning (accepted)
+        #
+        #
+        #
+        client_args = {  # extend defaults
+            'file_index': None,
+            'local': False,
+            'key': DEFAULT_KEY,
+            'cipher': 'none',
+            'filename': '',
+            'function': lambda x: None,
+            'iv': None,
+        }
+        client_args.update(json.loads(command_json))  # update
+        client_args = AttrDict(client_args)
+
+        # converting args (parsing strings to bytes and function names to functions)
+        client_args.cipherfunc = getattr(CipherLib, client_args.cipher)
+        client_args.iv = _string_to_bytes(client_args.iv)
+        client_args.function = eval(client_args.function)
+
+        # printing object:
+        import pprint
+        pp = pprint.PrettyPrinter(indent=4)
+        print('client_args received')
+        pp.pprint(vars(client_args))
+
+        #
+
+        server_resp = _string_to_bytes(json.dumps({
+            'readystate': 202,  # code "202" meaning (accepted)
+        }))
+        send_msg(conn, server_resp)
         return client_args
     except Exception as e:
         print("ERROR executing command:", e)
@@ -124,20 +154,33 @@ def get(conn: socket, args=None):
     if args.file_index:
         args.filename = os.listdir('files')[int(args.filename)]
 
+    iv = secrets.token_bytes(16)
     args_filename = args.filename
     filename = os.path.join('files', args_filename)
     with open(filename, 'rb') as f:
-        ciphertext = f.read()
-        data = args.cipherfunc(data=ciphertext, key=args.key)
-    print("finished reading file \"{}\", {}B".format(filename, len(data)))
-    send_msg(conn, data)
+        plaintext = f.read()
+        ciphertext = args.cipherfunc(data=plaintext, key=args.key, iv=iv)
+    print("finished reading file \"{}\", {}B".format(filename, len(ciphertext)))
+
+    return send_msg(
+        conn,
+        _string_to_bytes(json.dumps({
+            'filename': filename,
+            'data': _bytes_to_string(ciphertext),
+            'iv': _bytes_to_string(iv),
+        }))
+    )
 
 
 def put(conn: socket, args=None):
     # recv file from client and write to file
     print('receiving file...')
+    client_data = AttrDict(json.loads(_bytes_to_string(recv_msg(conn))))
+
     args.filename = os.path.join('files', args.filename)
-    data = recv_msg(conn)
+
+    data = client_data.data
+
     if data is None:
         print("Problem: data received is None")
     print("got the file data!: {}Bytes".format(len(data)))
@@ -146,7 +189,7 @@ def put(conn: socket, args=None):
         os.mkdir('./files')
 
     with open(args.filename, 'wb+') as file:
-        plaintext = args.cipherfunc(data=data, key=args.key, decrypt=True)
+        plaintext = args.cipherfunc(data=data, key=args.key, decrypt=True, iv=client_data.iv)
         file.write(plaintext)
 
     print('recieved file:', args.filename)
@@ -156,8 +199,7 @@ def put(conn: socket, args=None):
 
 
 def ls(conn: socket, args=None):
-    import json
     # send list of files
     filelist = os.listdir('files/')
     filelist_json = json.dumps(filelist)
-    send_msg(conn, filelist_json.encode('utf-8'))
+    send_msg(conn, _string_to_bytes(filelist_json))
