@@ -13,18 +13,22 @@ Term 191
 The application is programmed with python and has a command line interface, use `-h`, `--help` to see usage.  
 There are 2 programs that must be run: the client and the server.
 
+This program allows you to encrypt and send files between the client and the server using [Advanced Encryption Standard (AES)](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard).
+
 ----
 
 Table of contents:
+
 - [COE451 Programming Assignment: FTP client-server](#coe451-programming-assignment-ftp-client-server)
   - [Description](#description)
-  - [How it works](#how-it-works)
+  - [Requirements](#requirements)
+  - [Sequence Overview](#sequence-overview)
   - [Usage](#usage)
     - [Running the programs](#running-the-programs)
     - [Examples](#examples)
     - [Terminal menu](#terminal-menu)
       - [Subcommands](#subcommands)
-  - [Debugging](#debugging)
+  - [Troubleshooting](#troubleshooting)
   - [Credits and notes](#credits-and-notes)
 
 ## Requirements
@@ -34,9 +38,18 @@ Table of contents:
 
 To make dependency installation easier, you can use the `requierments.txt` file.
 To install the packages, `cd` to this project directory and execute:
+
 ```sh
 pip install -r requirements.txt
 ```
+
+## Sequence Overview
+
+The server continues to listen for connection requests, each time the user sends a command, the client will issue a connection request.
+
+The bellow diagram demonstrates the use-case of pushing a file to the server (other use-cases are analogous).
+
+![Sequence diagram](./docs/imgs/sequence_diagram.svg)
 
 ## Usage
 
@@ -57,7 +70,6 @@ Run the following commands while in the `scripts/` directory
 - `python client/client.py`
 - `python server/server.py`
 
-
 ### Examples
 
 1. Use `ls` to see what files are available
@@ -72,6 +84,12 @@ Run the following commands while in the `scripts/` directory
 
 3. Once the file is downloaded from the server, the client app will open it in the explorer:  
     ![getting file](./docs/imgs/getting_file2.png)
+4. You can choose the cipher type as well as passing a key.  
+   The following command will use AES encryption.
+
+   ```sh
+   client.py --cipher=aes --key='<INSERT_KEY_HERE>' put --file-index 0
+   ```
 
 ### Terminal menu
 
@@ -152,14 +170,6 @@ Note: there are issues with the filenames when using `put --file-index`, so it's
         -h, --help   show this help message and exit
         -l, --local  List files found locally (client side)
     ```
-
-## How it works
-
-The server continues to listen for connection requests, each time the user sends a command, the client will issue a connection request.
-
-The bellow diagram demonstrates the use-case of pushing a file to the server (other use-cases are analogous).
-
-![Sequence diagram](./docs/imgs/sequence_diagram.svg)
 
 ## Troubleshooting
 
