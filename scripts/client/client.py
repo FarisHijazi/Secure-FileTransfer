@@ -17,7 +17,7 @@ sys.path.insert(0, parentdir)
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 # moving the import path 1 directory up (to import utils)
-from client_backend import getArgParser, get_user_commands, exec_function
+from client_backend import get_arg_parser, get_user_commands, exec_function
 
 
 # HOST = '127.0.0.1'  # The server's hostname or IP address
@@ -25,7 +25,7 @@ from client_backend import getArgParser, get_user_commands, exec_function
 
 
 def main():
-    parser = getArgParser()
+    parser = get_arg_parser()
     print(DESCRIPTION + "\n")
 
     args = None

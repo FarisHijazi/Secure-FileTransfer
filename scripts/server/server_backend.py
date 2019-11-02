@@ -23,7 +23,7 @@ DEFAULT_KEY = _bytes_to_string(
     b'\xc3\x7d\xdf\xe2\x0d\x88\x02\x1b\xc6\x6a\x06\x70\x6a\xc9\xfb\xdd\x0b\xb2\xdc\x0b\x04\x3c\xf4\xd2\x2d\xbb\xbc\xda\x08\x6f\x0f\x48')
 
 
-def getArgParser():
+def get_arg_parser():
     parser = argparse.ArgumentParser("Server side app")
     parser.add_argument('--port', default=65432, type=int,
                         help='Port to listen on (non-privileged ports are > 1023)')

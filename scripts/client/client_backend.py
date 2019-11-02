@@ -17,7 +17,7 @@ DEFAULT_KEY = _bytes_to_string(
     b'\xc3\x7d\xdf\xe2\x0d\x88\x02\x1b\xc6\x6a\x06\x70\x6a\xc9\xfb\xdd\x0b\xb2\xdc\x0b\x04\x3c\xf4\xd2\x2d\xbb\xbc\xda\x08\x6f\x0f\x48')
 
 
-def sendCommand(args, callback=lambda sock: print("Connected", sock)):
+def send_command(args, callback=lambda sock: print("Connected", sock)):
     """connects to the server and sends the command
 
     :param args:   this object is similar to the one parsed from the commandline,
@@ -113,7 +113,7 @@ def exec_function(args):
     return args.function(args)
 
 
-def getArgParser():
+def get_arg_parser():
     """
     creating the command parser object
     """
@@ -223,7 +223,7 @@ def get(args=None):
             if os.path.isfile(filename):
                 subprocess.Popen(r'explorer /select,"{}"'.format(filename))
 
-    return sendCommand(args, callback)
+    return send_command(args, callback)
 
 
 def put(args=None):
@@ -253,7 +253,7 @@ def put(args=None):
             }))
         )
 
-    return sendCommand(args, callback)
+    return send_command(args, callback)
 
 
 def ls(args):
@@ -284,7 +284,7 @@ def ls_remote(args):
         print("List of server files:\n", prettystr)
         return filelist
 
-    return sendCommand(args, callback)
+    return send_command(args, callback)
 
 
 def quit(args=None):
