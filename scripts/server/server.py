@@ -35,16 +35,14 @@ if __name__ == "__main__":
             s.listen(10)
             print("waiting for clients to connect...")
             conn, addr = s.accept()
-            # print("accepted connection")
             with conn:
                 print('Connected by', addr)
-                client_args = recv_next_command(conn, client_parser)
+                client_args = recv_next_command(conn)
                 try:
-                    if hasattr(client_args, 'function'):
-                        result = client_args.function(conn, client_args)
+                    result = client_args.function(conn, client_args)
 
-                    client_resp = recv_msg(conn)
-                    if client_resp in [r'200']:
+                    final_client_resp = recv_msg(conn)
+                    if final_client_resp in [r'200']:
                         print("Transaction completed successfully")
                 except Exception as e:
                     print("Error:", e)

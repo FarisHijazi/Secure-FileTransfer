@@ -1,23 +1,30 @@
 import argparse
+import json
 import os
+import secrets
 import shlex
 import socket
 import subprocess
 import sys
+import types
 
-from utils import recv_msg, send_msg
-from encryption_utils import CipherLib
+from encryption_utils import CipherLib, _string_to_bytes, _bytes_to_string
+from utils import recv_msg, send_msg, AttrDict
 
 # 256 bits = 32 bytes
 # b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48'
-DEFAULT_KEY = b'\xc3\x7d\xdf\xe2\x0d\x88\x02\x1b\xc6\x6a\x06\x70\x6a\xc9\xfb\xdd\x0b\xb2\xdc\x0b\x04\x3c\xf4\xd2\x2d\xbb\xbc\xda\x08\x6f\x0f\x48'
+DEFAULT_KEY = _bytes_to_string(
+    b'\xc3\x7d\xdf\xe2\x0d\x88\x02\x1b\xc6\x6a\x06\x70\x6a\xc9\xfb\xdd\x0b\xb2\xdc\x0b\x04\x3c\xf4\xd2\x2d\xbb\xbc\xda\x08\x6f\x0f\x48')
 
 
-def sendCommand(args, callback=lambda sock: print("connected", sock)):
-    """
-    @param args -   this object is similar to the one parsed from the commandline, contains "host" and "port" members
-    @param callback(sock) - a function to call on success (gets passed the socket object, the socket object at this point is already connected and is ready to send or recv)
-    @returns the callback result
+def sendCommand(args, callback=lambda sock: print("Connected", sock)):
+    """connects to the server and sends the command
+
+    :param args:   this object is similar to the one parsed from the commandline,
+        contains "host" and "port" members
+    :param callback(sock, respjson): a function to call when connected to the server.
+        sock:   Gets passed the socket object, the socket object at this point is already connected and is ready to send or recv.
+    :return the callback result
     """
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -55,7 +62,11 @@ def get_user_commands(parser: argparse.ArgumentParser, args=None):
             values_as_strings = [(v.__name__ if hasattr(v, '__name__') else str(v)) for v in args.__dict__.values()]
             args_str = dict(zip(args.__dict__.keys(), values_as_strings))
 
-            print("Current arg values:", args_str)
+            # # pretty printing the arguments
+            # print("Current arg values:")
+            # import pprint
+            # pprint.PrettyPrinter(indent=4).pprint(args_str)
+
             line_args = input('Client\n$ ')
             print()
 
@@ -208,7 +219,7 @@ def put(args=None):
     return sendCommand(args, callback)
 
 
-def ls(args=None):
+def ls(args):
     """
     list files, either local or online (depending on --local argument)
     """
@@ -227,9 +238,9 @@ def ls_local(args=None, print_list=False):
     return filelist
 
 
-def ls_remote(args=None):
+def ls_remote(args):
     def callback(conn: socket):
-        import json
+        resp = recv_msg(conn)
         res = recv_msg(conn)
 
         filelist = json.loads(res)

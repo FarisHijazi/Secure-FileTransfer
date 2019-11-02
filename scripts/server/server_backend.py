@@ -9,7 +9,8 @@ from encryption_utils import CipherLib
 
 # 256 bits = 32 bytes
 # b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48'
-DEFAULT_KEY = b'\xc3\x7d\xdf\xe2\x0d\x88\x02\x1b\xc6\x6a\x06\x70\x6a\xc9\xfb\xdd\x0b\xb2\xdc\x0b\x04\x3c\xf4\xd2\x2d\xbb\xbc\xda\x08\x6f\x0f\x48'
+DEFAULT_KEY = _bytes_to_string(
+    b'\xc3\x7d\xdf\xe2\x0d\x88\x02\x1b\xc6\x6a\x06\x70\x6a\xc9\xfb\xdd\x0b\xb2\xdc\x0b\x04\x3c\xf4\xd2\x2d\xbb\xbc\xda\x08\x6f\x0f\x48')
 
 
 def getArgParser():
@@ -86,7 +87,9 @@ def getClientArgParser():
 
 def recv_next_command(conn: socket, client_parser=None):
     """
-    waits for a command by the client, and returns the parsed args, responds to the client with 202 on success
+    waits for a command by the client, and returns the parsed args,
+    responds to the client with 202 and data on success
+
     :param conn: socket connection
     :return: client command arguments, or None if invalid command
     """
@@ -99,7 +102,7 @@ def recv_next_command(conn: socket, client_parser=None):
         send_msg(conn, b'202')  # send the code "202" meaning (accepted)
         return client_args
     except Exception as e:
-        print("ERROR:", e)
+        print("ERROR executing command:", e)
         return None
 
 
