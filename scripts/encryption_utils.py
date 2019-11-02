@@ -39,18 +39,47 @@ class CipherLib:
             return data
 
         iv_128 = kwargs.get('iv', None)
+
+        # converting values to bytes
+        key = ensure_bytes(key)
+        data = ensure_bytes(data)
+        iv_128= ensure_bytes(iv_128)
+
+
         aes = pyaes.AESModeOfOperationCBC(key, iv=iv_128)
 
         operation = aes.decrypt if decrypt else aes.encrypt
 
-        block_size = 16
-        # padding (to be a multiple of 16)
-        remainder = len(data) % block_size
-        padded_data = b"".join([data, bytes(block_size - remainder)])
+        chunks = pad_and_partition(data, block_size=16)
+        # performing the operation (encryption or decryption)
+        new_data = b''.join((map(operation, chunks)))
 
-        # split to blocks and encrypt/decrypt each one
-        n_blocks = len(padded_data) // block_size
-        chunks = [padded_data[i * block_size:(i + 1) * block_size] for i in range(n_blocks)]
+        # print(('descrypted' if decrypt else 'encrypted') + ' data', new_data)
+
+        return new_data
+
+
+### ======== helper functions ==========
+
+
+def pad_and_partition(data, block_size=16):
+    # padding (to be a multiple of 16)
+    remainder = len(data) % block_size
+    padding = bytes((block_size - remainder) % block_size)
+    padded_data = b"".join([data, padding])
+    # split to blocks and encrypt/decrypt each one
+    n_blocks = len(padded_data) // block_size
+    chunks = [padded_data[i * block_size:(i + 1) * block_size] for i in range(n_blocks)]
+    return chunks
+
+def ensure_bytes(x):
+    # ensures that the data type is bytes (if string or None were passed)
+    if isinstance(x, (array.array)):
+        x = bytes(x)
+    if isinstance(x, (str)):
+        x = _string_to_bytes(x)
+    return x
+
 
 def _string_to_bytes(text):
     if text is None:
