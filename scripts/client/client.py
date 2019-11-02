@@ -5,9 +5,6 @@ import inspect
 import os
 import sys
 
-# moving the import path 1 directory up (to import utils)
-from client_backend import getArgParser, get_user_commands, exec_function
-
 DESCRIPTION = ("COE451 ProgAssignment1: SFTP client-server."
                "\nClient side" +
                "\nFaris Hijazi s201578750 25-09-19." +
@@ -18,6 +15,9 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
+# moving the import path 1 directory up (to import utils)
+from client_backend import getArgParser, get_user_commands, exec_function
 
 
 # HOST = '127.0.0.1'  # The server's hostname or IP address

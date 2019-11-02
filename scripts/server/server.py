@@ -1,16 +1,12 @@
-import socket
-import argparse
 import os
-import shlex
-import sys
-
-import inspect
+import socket
 
 # moving the import path 1 directory up (to import utils)
-from server_backend import getArgParser, recv_next_command, getClientArgParser
-from utils import recv_msg, send_msg
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))  # move path to file dir, to access files
+
+from server_backend import getArgParser, recv_next_command, getClientArgParser
+from utils import recv_msg
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
 PORT = 65432  # Port to listen on (non-privileged ports are > 1023)

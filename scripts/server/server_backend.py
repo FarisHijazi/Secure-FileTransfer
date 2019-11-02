@@ -3,9 +3,19 @@ import os
 import shlex
 import socket
 import subprocess
+import json
+import secrets
 
-from utils import send_msg, recv_msg, SafeArgumentParser
-from encryption_utils import CipherLib
+import os, sys, inspect
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+
+from utils import send_msg, recv_msg, SafeArgumentParser, AttrDict
+from encryption_utils import CipherLib, _string_to_bytes, _bytes_to_string
+
+os.chdir(os.path.dirname(os.path.realpath(__file__)))  # move path to file dir, to access files
 
 # 256 bits = 32 bytes
 # b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48'
