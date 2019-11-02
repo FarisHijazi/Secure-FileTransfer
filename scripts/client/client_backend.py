@@ -154,8 +154,7 @@ def get_arg_parser():
                         help='The encryption/decryption algorithm to use when receiving the file.'
                              'Applies to both "put" and "pull". Default: none')
     parser.add_argument('-k', '--key', default=DEFAULT_KEY,  # 256 bits = 32 bytes
-                        help='The key used for encryption/decryption.'
-                             'Default: random')
+                        help='The key used for encryption/decryption.')
 
     # creating subcommands
     subparsers = parser.add_subparsers(help='commands help...')
