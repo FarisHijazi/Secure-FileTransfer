@@ -49,7 +49,7 @@ The server continues to listen for connection requests, each time the user sends
 
 The bellow diagram demonstrates the use-case of pushing a file to the server (other use-cases are analogous).
 
-![Sequence diagram](./docs/imgs/sequence_diagram.svg)
+![Sequence diagram](./docs/imgs/Sequence_diagram.svg)
 
 ## Usage
 
