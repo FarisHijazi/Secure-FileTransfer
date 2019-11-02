@@ -5,7 +5,7 @@ import socket
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))  # move path to file dir, to access files
 
-from server_backend import getArgParser, recv_next_command, getClientArgParser
+from server_backend import getArgParser, recv_next_command
 from utils import recv_msg
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
@@ -21,7 +21,6 @@ if __name__ == "__main__":
           "\n=======================================")
     parser = getArgParser()
     args = parser.parse_args()
-    client_parser = getClientArgParser()
 
     i = 0
     while True:
