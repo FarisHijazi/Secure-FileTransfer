@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>COE451 Programming Assignment: FTP client-server</title>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+        
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="coe451-programming-assignment-ftp-client-server">COE451 Programming Assignment: FTP client-server</h1>
+<p>This repository is for a course project: &quot;Introduction to Cyber Security COE451&quot; at KFUPM.</p>
+<p><a href="https://github.com/FarisHijazi/Secure-FileTransfer">GitHub repository</a></p>
+<p>Faris Hijazi <a href="mailto:s201578750@kfupm.edu.sa">s201578750@kfupm.edu.sa</a></p>
+<p>Term 191</p>
+<h2 id="description">Description</h2>
+<p>The application is programmed with python and has a command line interface, use <code>-h</code>, <code>--help</code> to see usage.<br>
+There are 2 programs that must be run: the client and the server.</p>
+<p>This program allows you to encrypt and send files between the client and the server using <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard">Advanced Encryption Standard (AES)</a>.</p>
+<hr>
+<p>Table of contents:</p>
+<ul>
+<li><a href="#coe451-programming-assignment-ftp-client-server">COE451 Programming Assignment: FTP client-server</a>
+<ul>
+<li><a href="#description">Description</a></li>
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#sequence-overview">Sequence Overview</a></li>
+<li><a href="#usage">Usage</a>
+<ul>
+<li><a href="#running-the-programs">Running the programs</a></li>
+<li><a href="#examples">Examples</a></li>
+<li><a href="#terminal-menu">Terminal menu</a>
+<ul>
+<li><a href="#subcommands">Subcommands</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#credits-and-notes">Credits and notes</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>python &gt;= 3.0</li>
+<li><code>pyaes</code>, you can install this using <code>pip install pyaes</code></li>
+</ul>
+<p>To make dependency installation easier, you can use the <code>requierments.txt</code> file.
+To install the packages, <code>cd</code> to this project directory and execute:</p>
+<pre><code class="language-sh"><div>pip install -r requirements.txt
+</div></code></pre>
+<h2 id="sequence-overview">Sequence Overview</h2>
+<p>The server continues to listen for connection requests, each time the user sends a command, the client will issue a connection request.</p>
+<p>The bellow diagram demonstrates the use-case of pushing a file to the server (other use-cases are analogous).</p>
+<p><img src="file:///c:\Users\Faris\OneDrive - King Fahd University of Petroleum & Minerals (KFUPM)\Academic\191\COE451\ass\Secure_FileTransfer\docs\imgs\sequence_diagram.svg" alt="Sequence diagram"></p>
+<h2 id="usage">Usage</h2>
+<p>The client and server scripts must both be running.
+They can be invoked via command line.
+Arguments can be passed in the command line as well, the user will be prompted for input if no arguments are found.</p>
+<h3 id="running-the-programs">Running the programs</h3>
+<p>An easy way to run the file and server is to use the batch files in the <a href="tests/">tests</a> directory.<br>
+Run:</p>
+<ul>
+<li><code>tests/start_client.bat</code></li>
+<li><code>tests/start_server.bat</code></li>
+</ul>
+<p>Run the following commands while in the <code>scripts/</code> directory</p>
+<ul>
+<li><code>python client/client.py</code></li>
+<li><code>python server/server.py</code></li>
+</ul>
+<h3 id="examples">Examples</h3>
+<ol>
+<li>
+<p>Use <code>ls</code> to see what files are available</p>
+<p><img src="file:///c:\Users\Faris\OneDrive - King Fahd University of Petroleum & Minerals (KFUPM)\Academic\191\COE451\ass\Secure_FileTransfer\docs\imgs\ls.png" alt="list images (ls)"></p>
+</li>
+<li>
+<p>Request a specific file, for example by typing:</p>
+<pre><code class="language-sh"><div>get <span class="hljs-string">"doomguy (1).jpeg"</span>
+</div></code></pre>
+</li>
+<li>
+<p>Once the file is downloaded from the server, the client app will open it in the explorer:<br>
+<img src="file:///c:\Users\Faris\OneDrive - King Fahd University of Petroleum & Minerals (KFUPM)\Academic\191\COE451\ass\Secure_FileTransfer\docs\imgs\getting_file2.png" alt="getting file"></p>
+</li>
+<li>
+<p>You can choose the cipher type as well as passing a key.<br>
+The following command will use AES encryption.</p>
+<pre><code class="language-sh"><div>client.py --cipher=aes --key=<span class="hljs-string">'&lt;INSERT_KEY_HERE&gt;'</span> put --file-index 0
+</div></code></pre>
+</li>
+</ol>
+<h3 id="terminal-menu">Terminal menu</h3>
+<pre><code class="language-sh"><div>COE451 ProgAssignment1: SFTP client-server.
+Client side
+Faris Hijazi s201578750 25-09-19.
+=======================================
+
+usage: client.py [-h] [--port PORT] [--host HOST] [-c {none,aes}] [-k KEY]
+                 {<span class="hljs-built_in">help</span>,quit,q,<span class="hljs-built_in">exit</span>,get,put,ls} ...
+
+Connect to server
+
+positional arguments:
+  {<span class="hljs-built_in">help</span>,quit,q,<span class="hljs-built_in">exit</span>,get,put,ls}
+                        commands <span class="hljs-built_in">help</span>...
+    <span class="hljs-built_in">help</span>                Display <span class="hljs-built_in">help</span> message and usage
+    quit (q, <span class="hljs-built_in">exit</span>)      quit the program
+    get                 pull a file from the server
+    put                 push a file to the server (or locally)
+    ls                  list available files on the server
+
+optional arguments:
+  -h, --<span class="hljs-built_in">help</span>            show this <span class="hljs-built_in">help</span> message and <span class="hljs-built_in">exit</span>
+  --port PORT           port to listen on (non-privileged ports are &gt;
+                        1023).Default: 65432
+  --host HOST           hostname or ipv4 address to connect to (use ip address
+                        <span class="hljs-keyword">for</span> consistency).Default: <span class="hljs-string">"127.0.0.1"</span>
+  -c {none,aes}, --cipher {none,aes}
+                        The encryption/decryption algorithm to use when
+                        receiving the file.Applies to both <span class="hljs-string">"put"</span> and <span class="hljs-string">"pull"</span>.
+                        Default: none
+  -k KEY, --key KEY     The key used <span class="hljs-keyword">for</span> encryption/decryption.
+</div></code></pre>
+<h4 id="subcommands">Subcommands</h4>
+<p>For each subcommand, you can view even more usage details by using <code>--help</code></p>
+<ul>
+<li>
+<p>get</p>
+<pre><code class="language-sh"><div>usage: client.py get [-h] [-i] filename
+
+positional arguments:
+  filename
+
+optional arguments:
+  -h, --<span class="hljs-built_in">help</span>        show this <span class="hljs-built_in">help</span> message and <span class="hljs-built_in">exit</span>
+  -i, --file-index  Enable file-access by index, rather than by specifying the
+                    path. Use <span class="hljs-string">"ls"</span> to see the corresponding index to each file
+</div></code></pre>
+</li>
+<li>
+<p>put</p>
+<pre><code class="language-sh"><div>usage: client.py put [-h] [-i] filename
+
+positional arguments:
+  filename
+
+optional arguments:
+  -h, --<span class="hljs-built_in">help</span>        show this <span class="hljs-built_in">help</span> message and <span class="hljs-built_in">exit</span>
+  -i, --file-index  Enable file-access by index, rather than by specifying the
+                    path. Use <span class="hljs-string">"ls -l"</span> to list <span class="hljs-built_in">local</span> files and see the
+                    corresponding index to each file
+</div></code></pre>
+</li>
+</ul>
+<p>Note: there are issues with the filenames when using <code>put --file-index</code>, so it's advised to just use the regular <code>put filename</code></p>
+<ul>
+<li>
+<p>ls</p>
+<pre><code class="language-sh"><div>usage: client.py ls [-h] [-l]
+
+optional arguments:
+    -h, --<span class="hljs-built_in">help</span>   show this <span class="hljs-built_in">help</span> message and <span class="hljs-built_in">exit</span>
+    -l, --<span class="hljs-built_in">local</span>  List files found locally (client side)
+</div></code></pre>
+</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>Sometimes the server may not respond to keyboard interrupts and the process must be killed.
+To find out if any task is using a specific port (for example <code>65432</code>), run:</p>
+<pre><code><div>netstat -ano|findstr 65432
+</div></code></pre>
+<p>And to kill the task, get the PID and run:</p>
+<pre><code><div>taskkill /F /PID &lt;PID&gt;
+</div></code></pre>
+<hr>
+<h2 id="credits-and-notes">Credits and notes</h2>
+<p>The socket programming part of the code was taken from this <a href="https://realpython.com/python-sockets/">tutorial here</a>.</p>
+<p>Since TCP is not a message protocol, rather it is a stream protocol, issues were encountered with receiving large messages and were solved by building a simple message protocol on top of TCP.
+This can be achieved by pre-appending a 4-byte length field, this way the receiver knows how long it should keep accumulating the fragments (see solution from this answer on stackoverflow <a href="https://stackoverflow.com/a/17668009/7771202">here</a>).</p>
+
+    </body>
+    </html>

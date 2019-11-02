@@ -1,0 +1,6 @@
+title: Pushing file to server
+
+User->Client:command "push file"
+Client->Server: sendCommand()
+Server-->Server:recv_next_command()
+Client->User:Done

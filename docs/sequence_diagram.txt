@@ -1,0 +1,23 @@
+title Pushing file to server
+autoactivation
+autonumber
+actor User
+
+#activate Client
+Client->User:get_user_commands()
+User-->Client:command "PUT file"
+
+Client->Server: sendCommand() **json**
+Server->Server:recv_next_command()
+Server-->Client:send_msg(readystate='202')
+
+alt command==PUT
+Client->Server:file
+end
+
+Server->Server:client_args.function()
+Server-->Client:send_msg() Resp
+Client->>Client:callback()
+Client-->Server:send_msg(s, 200) **OK**
+deactivate Server
+Client-->User:done

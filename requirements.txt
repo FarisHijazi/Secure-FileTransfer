@@ -1,0 +1,2 @@
+setuptools==41.6.0
+pyaes==1.6.1
