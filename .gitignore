@@ -4,4 +4,4 @@
 *.iml
 
 MiniProj1-FarisHijazi.zip
-scripts/__pycache__/
+__pycache__/
