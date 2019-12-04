@@ -32,28 +32,7 @@ def send_command(args, callback=lambda sock: print("Connected", sock)):
         s.connect((args.host, args.port))  # connect
         print('\rConnection established                       ')
 
-        # random initialization vector
-        setattr(args, 'iv', secrets.token_bytes(16))
-
-        if not hasattr(args, 'cipherfunc'):
-            setattr(args, 'cipherfunc', CipherLib.none)
-
-        ################
-        # serialize args
-        ################
-        import copy
-        s_args = copy.deepcopy(vars(args))
-        for k, v in s_args.items():
-            if isinstance(v, types.FunctionType):  # functions get the name passed
-                s_args[k] = v.__name__
-            elif isinstance(v, bytes):  # bytes get turned into strings
-                s_args[k] = _bytes_to_string(v)
-
-        s_args['cipher'] = s_args.get('cipherfunc', 'none')
-        del s_args['key']  # delete key (otherwise is sent in plaintext)
-
-        request_json = json.dumps(s_args)
-        print('Sending command: "{}"'.format(request_json))
+        request_json = format_args_to_json(args)
 
         # send the command/request json
         send_msg(s, _string_to_bytes(request_json))
@@ -68,6 +47,38 @@ def send_command(args, callback=lambda sock: print("Connected", sock)):
             send_msg(s, b'200')  # send OK code
             print('\nTransaction complete')
             return res
+
+
+def format_args_to_json(args) -> str:
+    """
+    prepare these args to be sent to the server as json string
+    :param args: args object (not dict)
+    :return:
+    """
+
+    # setup IV
+    setattr(args, 'iv', secrets.token_bytes(16))
+
+    if not hasattr(args, 'cipherfunc'):
+        setattr(args, 'cipherfunc', CipherLib.none)
+
+    #
+
+    import copy
+    s_args = copy.deepcopy(vars(args))
+    for k, v in s_args.items():
+        if isinstance(v, types.FunctionType):  # functions get the name passed
+            s_args[k] = v.__name__
+        elif isinstance(v, bytes):  # bytes get turned into strings
+            s_args[k] = _bytes_to_string(v)
+
+    s_args['cipher'] = s_args.get('cipherfunc', 'none')
+    del s_args['key']  # delete key (otherwise is sent in plaintext)
+
+    request_json = json.dumps(s_args)
+
+    print('Sending command: "{}"'.format(request_json))
+    return request_json
 
 
 def get_user_commands(parser: argparse.ArgumentParser, args=None):

@@ -85,7 +85,6 @@ def _string_to_bytes(text):
     if text is None:
         text = ''
     array_array = array.array('B', list(ord(c) for c in text))
-    print(array_array)
     return bytes(array_array)
 
 

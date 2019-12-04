@@ -32,6 +32,33 @@ def get_arg_parser():
     return parser
 
 
+def parse_command_json(command_json):
+    client_args = {  # extend defaults
+        'auth': True,
+        'file_index': None,
+        'local': False,
+        'key': DEFAULT_KEY,
+        'cipher': 'none',
+        'filename': '',
+        'function': lambda x: None,
+        'iv': None,
+    }
+    client_args.update(json.loads(command_json))  # update
+    client_args = AttrDict(client_args)
+    # converting args (parsing strings to bytes and function names to functions)
+    client_args.cipherfunc = getattr(CipherLib, client_args.cipher)
+    client_args.iv = _string_to_bytes(client_args.iv)
+    client_args.function = eval(client_args.function)
+
+    # printing object:
+    import pprint
+    pp = pprint.PrettyPrinter(indent=4)
+    print('client_args received')
+    pp.pprint(vars(client_args))
+
+    return client_args
+
+
 def recv_next_command(conn: socket, client_parser=None):
     """
     waits for a command by the client, and returns the parsed args,
@@ -44,33 +71,7 @@ def recv_next_command(conn: socket, client_parser=None):
     print("received req:", command_json)
 
     try:
-        #
-        #
-        #
-        client_args = {  # extend defaults
-            'file_index': None,
-            'local': False,
-            'key': DEFAULT_KEY,
-            'cipher': 'none',
-            'filename': '',
-            'function': lambda x: None,
-            'iv': None,
-        }
-        client_args.update(json.loads(command_json))  # update
-        client_args = AttrDict(client_args)
-
-        # converting args (parsing strings to bytes and function names to functions)
-        client_args.cipherfunc = getattr(CipherLib, client_args.cipher)
-        client_args.iv = _string_to_bytes(client_args.iv)
-        client_args.function = eval(client_args.function)
-
-        # printing object:
-        import pprint
-        pp = pprint.PrettyPrinter(indent=4)
-        print('client_args received')
-        pp.pprint(vars(client_args))
-
-        #
+        client_args = parse_command_json(command_json)
 
         server_resp = _string_to_bytes(json.dumps({
             'readystate': 202,  # code "202" meaning (accepted)

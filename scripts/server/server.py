@@ -27,7 +27,7 @@ if __name__ == "__main__":
         i += 1
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((args.host, args.port))
-            s.listen(10)
+            s.listen(0)
             print("waiting for clients to connect...")
             conn, addr = s.accept()
             with conn:
