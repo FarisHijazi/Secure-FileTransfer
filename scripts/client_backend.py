@@ -8,8 +8,8 @@ import subprocess
 import sys
 import types
 
+from utils import recv_msg, send_msg, AttrDict, path_leaf
 from encryption_utils import CipherLib, _string_to_bytes, _bytes_to_string
-from utils import recv_msg, send_msg, AttrDict
 
 # 256 bits = 32 bytes
 # b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48'
@@ -82,7 +82,7 @@ def format_args_to_json(args) -> str:
 
 
 def get_user_commands(parser: argparse.ArgumentParser, args=None):
-    # the returned agrs object will also have a member args._line_args
+    # the returned args object will also have a member args._line_args
     # parsing args
     line_args = ''
 
@@ -96,13 +96,8 @@ def get_user_commands(parser: argparse.ArgumentParser, args=None):
         done = False
         while not done:
             parser.print_usage()
-            values_as_strings = [(v.__name__ if hasattr(v, '__name__') else str(v)) for v in args.__dict__.values()]
-            args_str = dict(zip(args.__dict__.keys(), values_as_strings))
-
-            # # pretty printing the arguments
-            # print("Current arg values:")
-            # import pprint
-            # pprint.PrettyPrinter(indent=4).pprint(args_str)
+            # values_as_strings = [(v.__name__ if hasattr(v, '__name__') else str(v)) for v in args.__dict__.values()]
+            # args_str = dict(zip(args.__dict__.keys(), values_as_strings))
 
             line_args = input('Client\n$ ')
             print()
@@ -137,6 +132,9 @@ def get_arg_parser():
     parser.add_argument('--host', default='127.0.0.1', type=str,
                         help='hostname or ipv4 address to connect to (use ip address for consistency).'
                              'Default: "127.0.0.1"')
+
+    parser.add_argument('--auth', default=True, action='store_true',
+                        help='Perform authentication and establish a session key')
 
     # https://docs.python.org/2/library/argparse.html#action-classes
     # class argparse.Action(option_strings, dest, nargs=None, const=None, default=None, type=None, choices=None, required=False, help=None, metavar=None)
@@ -202,7 +200,6 @@ def get_arg_parser():
     parser_ls.set_defaults(function=ls)
     return parser
 
-
 # ============ client actions =======
 
 
@@ -215,12 +212,10 @@ def get(args=None):
             args.filename = resp.filename
             delattr(args, 'file_index')
 
-        if not os.path.isdir('./files'):
-            os.mkdir('./files')
+        if not os.path.isdir('./client_files'):
+            os.mkdir('./client_files')
 
-        filename = args.filename \
-            if args.filename.startswith('files') \
-            else os.path.join('files', args.filename)
+        filename = os.path.join('client_files', path_leaf(args.filename))
 
         if os.path.isdir(filename):
             args.filename = os.path.join(args.filename, resp.filename)
@@ -242,7 +237,7 @@ def put(args=None):
         file_index = int(args.filename)
         args.filename = ls_local(args)[file_index]
 
-    filename = os.path.join('files', args.filename)  # prepend 'file/'
+    filename = os.path.join('client_files', path_leaf(args.filename))
 
     if not os.path.isfile(filename):  # check if file exists
         print('ERROR: File "{}" doesn\'t exist'.format(filename))
@@ -268,7 +263,7 @@ def put(args=None):
 
 def ls(args):
     """
-    list files, either local or online (depending on --local argument)
+    list client_files, either local or online (depending on --local argument)
     """
     if args.local:
         return ls_local(args, True)
@@ -277,11 +272,11 @@ def ls(args):
 
 
 def ls_local(args=None, print_list=False):
-    filelist = os.listdir('files/')
+    filelist = os.listdir('client_files/')
     if print_list:
         prettystr = '\n'.join(['\t{} | \t{}'.format(i, file)
                                for i, file in enumerate(filelist)])
-        print("List of server files:\n", prettystr)
+        print("List of server client_files:\n", prettystr)
     return filelist
 
 
@@ -291,7 +286,7 @@ def ls_remote(args):
         filelist = json.loads(resp)
         prettystr = '\n'.join(['\t{} | \t{}'.format(i, file)
                                for i, file in enumerate(filelist)])
-        print("List of server files:\n", prettystr)
+        print("List of server client_files:\n", prettystr)
         return filelist
 
     return send_command(args, callback)

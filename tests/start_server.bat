@@ -1,3 +1,3 @@
 cd ..
-python ./scripts/server/server.py
+python ./scripts/server.py
 pause

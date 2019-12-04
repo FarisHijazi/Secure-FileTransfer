@@ -1,6 +1,4 @@
 import argparse
-import os
-import shlex
 import socket
 import subprocess
 import json
@@ -8,14 +6,8 @@ import secrets
 
 import os, sys, inspect
 
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
-
-from utils import send_msg, recv_msg, SafeArgumentParser, AttrDict
+from utils import send_msg, recv_msg, SafeArgumentParser, AttrDict, path_leaf
 from encryption_utils import CipherLib, _string_to_bytes, _bytes_to_string
-
-os.chdir(os.path.dirname(os.path.realpath(__file__)))  # move path to file dir, to access files
 
 # 256 bits = 32 bytes
 # b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48'
@@ -90,14 +82,15 @@ def recv_next_command(conn: socket, client_parser=None):
 def get(conn: socket, args=None):
     # send the file to client
     if args.file_index:
-        args.filename = os.listdir('files')[int(args.filename)]
+        args.filename = os.listdir('server_files')[int(args.filename)]
 
     iv = secrets.token_bytes(16)
-    args_filename = args.filename
-    filename = os.path.join('files', args_filename)
+    
+    filename = os.path.join('server_files', path_leaf(args.filename))
     with open(filename, 'rb') as f:
         plaintext = f.read()
         ciphertext = args.cipherfunc(data=plaintext, key=args.key, iv=iv)
+    
     print("finished reading file \"{}\", {}B".format(filename, len(ciphertext)))
 
     return send_msg(
@@ -115,7 +108,8 @@ def put(conn: socket, args=None):
     print('receiving file...')
     client_data = AttrDict(json.loads(_bytes_to_string(recv_msg(conn))))
 
-    args.filename = os.path.join('files', args.filename)
+    args.filename = os.path.join('server_files', args.filename)
+
 
     data = client_data.data
 
@@ -123,21 +117,23 @@ def put(conn: socket, args=None):
         print("Problem: data received is None")
     print("got the file data!: {}Bytes".format(len(data)))
 
-    if not os.path.isdir('./files'):
-        os.mkdir('./files')
+    if not os.path.isdir('./server_files'):
+        os.mkdir('./server_files')
+    
+    filename = os.path.join('server_files', path_leaf(args.filename))
 
-    with open(args.filename, 'wb+') as file:
+    with open(filename, 'wb+') as f:
         plaintext = args.cipherfunc(data=data, key=args.key, decrypt=True, iv=client_data.iv)
-        file.write(plaintext)
+        f.write(plaintext)
 
     print('recieved file:', args.filename)
 
-    if os.path.isfile(args.filename):
+    if os.path.isfile(filename):
         subprocess.Popen(r'explorer /select,"{}"'.format(args.filename))
 
 
 def ls(conn: socket, args=None):
     # send list of files
-    filelist = os.listdir('files/')
+    filelist = os.listdir('server_files/')
     filelist_json = json.dumps(filelist)
     send_msg(conn, _string_to_bytes(filelist_json))
