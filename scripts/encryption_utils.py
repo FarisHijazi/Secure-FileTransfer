@@ -1,7 +1,6 @@
 import pyaes
-import array, struct
 
-import os
+from byte_utils import _string_to_bytes, ensure_bytes
 
 
 class CipherLib:
@@ -72,23 +71,4 @@ def pad_and_partition(data, block_size=16):
     chunks = [padded_data[i * block_size:(i + 1) * block_size] for i in range(n_blocks)]
     return chunks
 
-def ensure_bytes(x):
-    # ensures that the data type is bytes (if string or None were passed)
-    if isinstance(x, (array.array)):
-        x = bytes(x)
-    if isinstance(x, (str)):
-        x = _string_to_bytes(x)
-    return x
 
-
-def _string_to_bytes(text):
-    if text is None:
-        text = ''
-    array_array = array.array('B', list(ord(c) for c in text))
-    return bytes(array_array)
-
-
-def _bytes_to_string(binary):
-    if binary is None:
-        binary = b''
-    return "".join(chr(b) for b in binary)

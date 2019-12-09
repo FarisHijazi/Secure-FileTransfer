@@ -2,7 +2,7 @@ import json
 import socket
 
 from client_backend import format_args_to_json
-from encryption_utils import _string_to_bytes, _bytes_to_string
+from byte_utils import _string_to_bytes, _bytes_to_string, int_to_bytes, int_from_bytes
 from utils import send_msg, recv_msg, AttrDict, modinv, find_coprime
 import time
 

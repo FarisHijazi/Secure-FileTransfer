@@ -22,17 +22,6 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def RepresentsInt(s):
-    try:
-        int(s)
-        return True
-    except ValueError:
-        return False
-
-
-def enq(string: str):  # enquote string if not already enquoted
-    return string if string.startswith('"') and string.endswith('"') else ('"' + string + '"')
-
 # the bellow was taken from the answer here:
 # https://stackoverflow.com/a/17668009/7771202
 

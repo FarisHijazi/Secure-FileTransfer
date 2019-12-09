@@ -9,7 +9,8 @@ import sys
 import types
 
 from utils import recv_msg, send_msg, AttrDict, path_leaf
-from encryption_utils import CipherLib, _string_to_bytes, _bytes_to_string
+from encryption_utils import CipherLib
+from byte_utils import _string_to_bytes, _bytes_to_string
 
 # 256 bits = 32 bytes
 # b'c37ddfe20d88021bc66a06706ac9fbdd0bb2dc0b043cf4d22dbbbcda086f0f48'
