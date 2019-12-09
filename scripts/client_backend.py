@@ -30,7 +30,7 @@ def send_command(args, callback=lambda sock: print("Connected", sock)):
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         print('connecting to server...', end='')
-        s.connect((args.host, args.port))  # connect
+        s.connect((args['host'], args['port']))  # connect
         print('\rConnection established                       ')
 
         request_json = format_args_to_json(args)
@@ -41,8 +41,8 @@ def send_command(args, callback=lambda sock: print("Connected", sock)):
         # check if server acknowledged the command
         # (if resp is included in one of the success response codes)
         resp = recv_msg(s)
-        resp_json = AttrDict(json.loads(_bytes_to_string(resp)))
-        if resp_json.readystate in [202]:
+        resp_json = json.loads(_bytes_to_string(resp))
+        if resp_json['readystate'] in [202]:
             res = callback(s)
 
             send_msg(s, b'200')  # send OK code
@@ -50,23 +50,23 @@ def send_command(args, callback=lambda sock: print("Connected", sock)):
             return res
 
 
-def format_args_to_json(args) -> str:
+def format_args_to_json(args: dict) -> str:
     """
     prepare these args to be sent to the server as json string
-    :param args: args object (not dict)
-    :return:
+    :param args: args dict
+    :returns a copied formatted dict json string
     """
 
     # setup IV
-    setattr(args, 'iv', secrets.token_bytes(16))
+    args['iv'] = secrets.token_bytes(16)
 
-    if not hasattr(args, 'cipherfunc'):
-        setattr(args, 'cipherfunc', CipherLib.none)
+    if 'cipherfunc' not in args:
+        args['cipherfunc'] = CipherLib.none
 
     #
 
     import copy
-    s_args = copy.deepcopy(vars(args))
+    s_args = copy.deepcopy(args)
     for k, v in s_args.items():
         if isinstance(v, types.FunctionType):  # functions get the name passed
             s_args[k] = v.__name__
@@ -75,6 +75,7 @@ def format_args_to_json(args) -> str:
 
     s_args['cipher'] = s_args.get('cipherfunc', 'none')
     del s_args['key']  # delete key (otherwise is sent in plaintext)
+    del s_args['sesskey']
 
     request_json = json.dumps(s_args)
 
@@ -88,8 +89,8 @@ def get_user_commands(parser: argparse.ArgumentParser, args=None):
     line_args = ''
 
     if not args:
-        args = parser.parse_args()
-        if hasattr(args, 'function'):  # arguments passed (if first time)
+        args = vars(parser.parse_args())
+        if 'function' in args:  # arguments passed (if first time)
             line_args = ' '.join(sys.argv[1:])
             sys.argv = [sys.argv[0]]  # clear CLI args
 
@@ -97,27 +98,23 @@ def get_user_commands(parser: argparse.ArgumentParser, args=None):
         done = False
         while not done:
             parser.print_usage()
-            # values_as_strings = [(v.__name__ if hasattr(v, '__name__') else str(v)) for v in args.__dict__.values()]
-            # args_str = dict(zip(args.__dict__.keys(), values_as_strings))
 
             line_args = input('Client\n$ ')
             print()
 
             try:
-                args = parser.parse_args(shlex.split(line_args))
+                args = vars(parser.parse_args(shlex.split(line_args)))
                 done = True  # keep trying and break when successful
             except Exception as e:
                 print("ERROR:", e)
 
-    setattr(args, '_line_args', line_args)
+    args['_line_args'] = line_args
     return args
 
 
-def exec_function(args):
-    if not hasattr(args, 'function'):
-        return
-
-    return args.function(args)
+def exec_function(args: dict):
+    if 'function' in args:
+        return args['function'](args)
 
 
 def get_arg_parser():
@@ -204,27 +201,27 @@ def get_arg_parser():
 # ============ client actions =======
 
 
-def get(args=None):
+def get(args: dict):
     def callback(conn: socket):
         # receive data
-        resp = AttrDict(json.loads(_bytes_to_string(recv_msg(conn))))
+        resp = json.loads(_bytes_to_string(recv_msg(conn)))
 
-        if args.file_index:
-            args.filename = resp.filename
-            delattr(args, 'file_index')
+        if args['file_index'] == True:
+            args['filename'] = resp['filename']
+            del args['file_index']
 
         if not os.path.isdir('./client_files'):
             os.mkdir('./client_files')
 
-        filename = os.path.join('client_files', path_leaf(args.filename))
+        filename = os.path.join('client_files', path_leaf(args['filename']))
 
         if os.path.isdir(filename):
-            args.filename = os.path.join(args.filename, resp.filename)
+            args['filename'] = os.path.join(args['filename'], resp['filename'])
 
         # === done preparing filesystem ===
 
         with open(filename, 'wb+') as f:
-            plaintext = args.cipherfunc(data=resp.data, key=args.key, decrypt=True, iv=resp.iv)
+            plaintext = args['cipherfunc'](data=resp['data'], key=args['key'], decrypt=True, iv=resp['iv'])
             f.write(plaintext)
             if os.path.isfile(filename):
                 subprocess.Popen(r'explorer /select,"{}"'.format(filename))
@@ -232,13 +229,13 @@ def get(args=None):
     return send_command(args, callback)
 
 
-def put(args=None):
-    if args.file_index:  # if access-by-fileindex, then remove attr (to prevent issues) and get filename
-        delattr(args, 'file_index')
-        file_index = int(args.filename)
-        args.filename = ls_local(args)[file_index]
+def put(args: dict):
+    if args['file_index'] == True:  # if access-by-fileindex, then remove attr (to prevent issues) and get filename
+        del args['file_index']
+        file_index = int(args['filename'])
+        args['filename'] = ls_local(args)[file_index]
 
-    filename = os.path.join('client_files', path_leaf(args.filename))
+    filename = os.path.join('client_files', path_leaf(args['filename']))
 
     if not os.path.isfile(filename):  # check if file exists
         print('ERROR: File "{}" doesn\'t exist'.format(filename))
@@ -248,31 +245,31 @@ def put(args=None):
         ciphertext = b''
         with open(filename, 'rb') as f:
             data = f.read()
-            ciphertext = args.cipherfunc(data=data, key=args.key, iv=args.iv)
+            ciphertext = args['cipherfunc'](data=data, key=args['key'], iv=args['iv'])
 
         return send_msg(
             conn,
             _string_to_bytes(json.dumps({
                 'filename': filename,
                 'data': _bytes_to_string(ciphertext),
-                'iv': _bytes_to_string(args.iv),
+                'iv': _bytes_to_string(args['iv']),
             }))
         )
 
     return send_command(args, callback)
 
 
-def ls(args):
+def ls(args: dict):
     """
     list client_files, either local or online (depending on --local argument)
     """
-    if args.local:
+    if args['local'] == True:
         return ls_local(args, True)
     else:
         return ls_remote(args)
 
 
-def ls_local(args=None, print_list=False):
+def ls_local(args: dict, print_list=False):
     filelist = os.listdir('client_files/')
     if print_list:
         prettystr = '\n'.join(['\t{} | \t{}'.format(i, file)
@@ -281,10 +278,9 @@ def ls_local(args=None, print_list=False):
     return filelist
 
 
-def ls_remote(args):
+def ls_remote(args: dict):
     def callback(conn: socket):
-        resp = recv_msg(conn)
-        filelist = json.loads(resp)
+        filelist = json.loads(recv_msg(conn))
         prettystr = '\n'.join(['\t{} | \t{}'.format(i, file)
                                for i, file in enumerate(filelist)])
         print("List of server client_files:\n", prettystr)

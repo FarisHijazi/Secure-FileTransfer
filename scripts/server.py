@@ -18,7 +18,7 @@ if __name__ == "__main__":
           "\nFaris Hijazi s201578750 25-09-19." +
           "\n=======================================")
     parser = get_arg_parser()
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
     from authentication import authenticate
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     while True:
         i += 1
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((args.host, args.port))
+            s.bind((args['host'], args['port']))
             s.listen(0)
             print("waiting for clients to connect...")
             conn, addr = s.accept()
@@ -37,7 +37,7 @@ if __name__ == "__main__":
                     authenticate(client_args, is_client=False, conn=conn)
 
                 try:
-                    result = client_args.function(conn, client_args)
+                result = client_args['function'](conn, client_args)
 
                     final_client_resp = recv_msg(conn)
                     if final_client_resp in [r'200']:

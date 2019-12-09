@@ -30,9 +30,9 @@ def main():
         i += 1
         args = get_user_commands(parser, args)
 
-        if vars(args)['auth']:
+        if args['auth']:
             print('Client: authenticating server...')
-            authenticate(args)
+            args['key'] = authenticate(args)
 
         resp = exec_function(args)
 
