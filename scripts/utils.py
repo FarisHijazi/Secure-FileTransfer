@@ -50,3 +50,44 @@ def recvall(sock, n):
             return None
         data += packet
     return data
+
+
+############
+# math utils
+############
+
+def egcd(a, b):
+    if a == 0:
+        return (b, 0, 1)
+    else:
+        g, y, x = egcd(b % a, a)
+        return (g, x - (b // a) * y, y)
+
+
+def modinv(a, m):
+    g, x, y = egcd(a, m)
+    if g != 1:
+        raise Exception('modular inverse does not exist')
+    else:
+        return x % m
+
+
+def coprime(a, b):
+    from math import gcd as bltin_gcd
+    return bltin_gcd(a, b) == 1
+
+
+def find_coprime(a):
+    i = 2
+    while True:
+        if coprime(a, i):
+            return i
+        i += 1
+
+
+def path_leaf(path):
+    import ntpath
+    head, tail = ntpath.split(path)
+    return tail or ntpath.basename(head)
+
+#
