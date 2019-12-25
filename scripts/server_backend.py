@@ -36,7 +36,7 @@ def parse_command_json(command_json):
         'function': lambda x: None,
         'iv': None,
     }
-    client_args['update'](json.loads(command_json))  # update
+    client_args.update(json.loads(command_json))  # update
     # converting args (parsing strings to bytes and function names to functions)
     client_args['cipherfunc'] = getattr(CipherLib, client_args['cipher'])
     client_args['iv'] = _string_to_bytes(client_args['iv'])
@@ -62,18 +62,13 @@ def recv_next_command(conn: socket, client_parser=None):
     command_json = _bytes_to_string(recv_msg(conn))
     print("received req:", command_json)
 
-    try:
-        client_args = parse_command_json(command_json)
+    client_args = parse_command_json(command_json)
 
-        server_resp = _string_to_bytes(json.dumps({
-            'readystate': 202,  # code "202" meaning (accepted)
-        }))
-        send_msg(conn, server_resp)
-        return client_args
-    except Exception as e:
-        print("ERROR executing command:", e)
-        return None
-
+    server_resp = _string_to_bytes(json.dumps({
+        'readystate': 202,  # code "202" meaning (accepted)
+    }))
+    send_msg(conn, server_resp)
+    return client_args
 
 # ======== server actions =====
 # these actions/commands are with respect to the client,
@@ -85,6 +80,7 @@ def get(conn: socket, args=None):
         args['filename'] = os.listdir('server_files')[int(args['filename'])]
 
     iv = secrets.token_bytes(16)
+    print('iv=',iv)
     
     filename = os.path.join('server_files', path_leaf(args['filename']))
     with open(filename, 'rb') as f:
@@ -119,9 +115,11 @@ def put(conn: socket, args=None):
         os.mkdir('./server_files')
     
     filename = os.path.join('server_files', path_leaf(args['filename']))
+    
+    print('iv=',client_data['iv'])
 
     with open(filename, 'wb+') as f:
-        plaintext = args['cipherfunc'](data=data, key=args['key'], decrypt=True, iv=client_data.iv)
+        plaintext = args['cipherfunc'](data=data, key=args['key'], decrypt=True, iv=client_data['iv'])
         f.write(plaintext)
 
     print('recieved file:', args['filename'])

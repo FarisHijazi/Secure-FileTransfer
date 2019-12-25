@@ -7,6 +7,7 @@ import socket
 import subprocess
 import sys
 import types
+from copy import deepcopy
 
 from utils import recv_msg, send_msg, AttrDict, path_leaf
 from encryption_utils import CipherLib
@@ -33,6 +34,9 @@ def send_command(args, callback=lambda sock: print("Connected", sock)):
         s.connect((args['host'], args['port']))  # connect
         print('\rConnection established                       ')
 
+        args['auth'] = False
+        # setup IV
+        args['iv'] = secrets.token_bytes(16)
         request_json = format_args_to_json(args)
 
         # send the command/request json
@@ -57,9 +61,6 @@ def format_args_to_json(args: dict) -> str:
     :returns a copied formatted dict json string
     """
 
-    # setup IV
-    args['iv'] = secrets.token_bytes(16)
-
     if 'cipherfunc' not in args:
         args['cipherfunc'] = CipherLib.none
 
@@ -75,11 +76,12 @@ def format_args_to_json(args: dict) -> str:
 
     s_args['cipher'] = s_args.get('cipherfunc', 'none')
     del s_args['key']  # delete key (otherwise is sent in plaintext)
-    del s_args['sesskey']
+    if 'sesskey' in s_args:
+        del s_args['sesskey']
 
     request_json = json.dumps(s_args)
 
-    print('Sending command: "{}"'.format(request_json))
+    # print('Sending command: "{}"'.format(request_json))
     return request_json
 
 
@@ -133,6 +135,9 @@ def get_arg_parser():
 
     parser.add_argument('--auth', default=True, action='store_true',
                         help='Perform authentication and establish a session key')
+
+    parser.add_argument('--test', default=0, type=int,
+                        help='These are the test cases for the authentication, by default, test cases are off')
 
     # https://docs.python.org/2/library/argparse.html#action-classes
     # class argparse.Action(option_strings, dest, nargs=None, const=None, default=None, type=None, choices=None, required=False, help=None, metavar=None)
@@ -198,6 +203,7 @@ def get_arg_parser():
     parser_ls.set_defaults(function=ls)
     return parser
 
+
 # ============ client actions =======
 
 
@@ -206,7 +212,7 @@ def get(args: dict):
         # receive data
         resp = json.loads(_bytes_to_string(recv_msg(conn)))
 
-        if args['file_index'] == True:
+        if 'file_index' in args and args['file_index'] == True:
             args['filename'] = resp['filename']
             del args['file_index']
 
@@ -230,7 +236,10 @@ def get(args: dict):
 
 
 def put(args: dict):
-    if args['file_index'] == True:  # if access-by-fileindex, then remove attr (to prevent issues) and get filename
+    
+    args['iv'] = secrets.token_bytes(16)
+
+    if 'file_index' in args and args['file_index'] == True:  # if access-by-fileindex, then remove attr (to prevent issues) and get filename
         del args['file_index']
         file_index = int(args['filename'])
         args['filename'] = ls_local(args)[file_index]
