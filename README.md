@@ -15,6 +15,8 @@ There are 2 programs that must be run: the client and the server.
 
 This program allows you to encrypt and send files between the client and the server using [Advanced Encryption Standard (AES)](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard).
 
+For up to date documentation, visit the [github repository](https://github.com/FarisHijazi/Secure-FileTransfer).
+
 ----
 
 Table of contents:
@@ -23,6 +25,7 @@ Table of contents:
   - [Description](#description)
   - [Requirements](#requirements)
   - [Sequence Overview](#sequence-overview)
+    - [Phase 3 - Modified SSH authentication](#phase-3---modified-ssh-authentication)
   - [Usage](#usage)
     - [Running the programs](#running-the-programs)
     - [Examples](#examples)
@@ -45,11 +48,17 @@ pip install -r requirements.txt
 
 ## Sequence Overview
 
-The server continues to listen for connection requests, each time the user sends a command, the client will issue a connection request.
+The server continues to listen for connection requests, each time the user sends a command or issues a transaction (such as `PUT` or `GET`), the client will issue a connection request.
 
 The bellow diagram demonstrates the use-case of pushing a file to the server (other use-cases are analogous).
 
 ![Sequence diagram](./docs/imgs/Sequence_diagram.svg)
+
+### Phase 3 - Modified SSH authentication
+
+The bellow diagram explains the steps used for authentication
+
+![phase3](docs/imgs/phase3_diagram.png)
 
 ## Usage
 
@@ -67,8 +76,8 @@ Run:
 
 Run the following commands while in the `scripts/` directory
 
-- `python client/client.py`
-- `python server/server.py`
+- `python client.py`
+- `python server.py`
 
 ### Examples
 
