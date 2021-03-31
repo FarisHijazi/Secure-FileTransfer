@@ -43,7 +43,7 @@ jupyter-highlight-selected-word==0.2.0
 jupyter-latex-envs==1.4.6
 jupyter-nbextensions-configurator==0.4.1
 lazy-object-proxy==1.4.2
-lxml==4.4.2
+lxml==4.6.3
 Markdown==3.1.1
 MarkupSafe==1.1.1
 mccabe==0.6.1
